@@ -36,7 +36,7 @@ const buildResponse = (event) => {
   if (result) {
     expense = {
       amount: result[1],
-      categories: result[2]
+      description: result[2]
     }
   }
 
@@ -45,7 +45,7 @@ const buildResponse = (event) => {
   } else if (text == '/help') {
     response = 'Send messages in format> amount categories'
   } else if (expense) {
-    response = `Got it ${expense.amount} added (${expense.categories})`
+    response = `Got it ${expense.amount} added (${expense.description}) paid by ${event.body.message.from.first_name}`
   } else {
     response = `I didn't understand. Try /help.`
   }
@@ -63,58 +63,29 @@ const storeExpense = (event) => {
 
   const sheets = google.sheets({version: 'v4', auth: event.auth})
 
+  let row
+
+  if (event.body.message.from.first_name == 'Alexandra') {
+    row = [formatDate(event.body.message.date), event.expense.amount, event.expense.amount,0, event.expense.description]
+  } else if (event.body.message.from.first_name == 'Daniel') {
+    row = [formatDate(event.body.message.date), event.expense.amount, 0, event.expense.amount,event.expense.description]
+  }
   return new Promise((resolve, reject) => {
     sheets.spreadsheets.values.append({
       spreadsheetId: process.env.GOOGLE_SHEET_ID,
-      range: getSheetName(event.body.message.date)+'!A:C',
+      range: 'Sheet1!A:E',
       valueInputOption: 'USER_ENTERED',
       insertDataOption: 'INSERT_ROWS',
       resource: {
         majorDimension: 'ROWS',
         values: [
-          [formatDate(event.body.message.date), event.expense.amount, event.expense.categories]
+          row
         ]
       }
     }, (err, {data}) => {
       if (err) reject(err)
       resolve(Object.assign(event, {data: data}))
     });
-  })
-}
-
-const addNewSheet = (event) => {
-  const sheets = google.sheets({version: 'v4', auth: event.auth})
-
-  return new Promise((resolve, reject) => {
-    sheets.spreadsheets.values.get({
-      spreadsheetId: process.env.GOOGLE_SHEET_ID,
-      range: getSheetName(event.body.message.date)+'!A:C'
-    }, (err, {data}) => {
-      if (err) {
-        sheets.spreadsheets.batchUpdate({
-          spreadsheetId: process.env.GOOGLE_SHEET_ID,
-          resource: {
-            requests: [
-              { 
-                addSheet: {
-                  properties: {
-                    title: getMonthName(event.body.message.date)
-                  }
-                }
-              }
-            ]
-          }
-        }, (err2, {data2}) => {
-          if (err2) {
-            reject(err2)
-          } else {
-            resolve(event)
-          }
-        })
-      } else {
-        resolve(event)
-      }
-    })
   })
 }
 
@@ -178,8 +149,8 @@ module.exports.hello = (event, context, callback) =>
     .then(parseMessage)
     .then(buildResponse)
     .then(getGoogleToken)
-    .then(addNewSheet)
     .then(storeExpense)
+  //.then(getTotalDebt)
     .then(sendMessage)
     .then(() => successResponse(callback))
     .catch(error => errorResponse(error, callback))

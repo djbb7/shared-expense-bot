@@ -22,10 +22,10 @@ provider:
   runtime: nodejs6.10
   region: eu-central-1
   environment:
-    TELEGRAM_TOKEN: ${ssm:expensebot_telegram_token}
-    GOOGLE_TOKEN: ${ssm:expensebot_google_token}
-    GOOGLE_CREDENTIALS: ${ssm:expensebot_google_credentials}
-    GOOGLE_SHEET_ID: ${ssm:expensebot_google_sheet_id}
+    TELEGRAM_TOKEN: ${ssm:dalexbot_telegram_token}
+    GOOGLE_TOKEN: ${ssm:dalexbot_google_token}
+    GOOGLE_CREDENTIALS: ${ssm:dalexbot_google_credentials}
+    GOOGLE_SHEET_ID: ${ssm:dalexbot_google_sheet_id}
 
 package:
   include:
