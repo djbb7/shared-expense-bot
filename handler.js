@@ -43,9 +43,9 @@ const buildResponse = (event) => {
   if (text == '/start') {
     response = 'Welcome'
   } else if (text == '/help') {
-    response = 'Send messages in format> amount categories'
+    response = 'Send messages in format> amount description'
   } else if (expense) {
-    response = `Got it ${expense.amount} added (${expense.description}) paid by ${event.body.message.from.first_name}`
+    response = `${expense.amount} added (${expense.description}) paid by ${event.body.message.from.first_name}`
   } else {
     response = `I didn't understand. Try /help.`
   }
@@ -75,7 +75,7 @@ const storeExpense = (event) => {
       spreadsheetId: process.env.GOOGLE_SHEET_ID,
       range: 'Sheet1!A:E',
       valueInputOption: 'USER_ENTERED',
-      insertDataOption: 'INSERT_ROWS',
+      insertDataOption: 'OVERWRITE',
       resource: {
         majorDimension: 'ROWS',
         values: [
@@ -89,7 +89,34 @@ const storeExpense = (event) => {
   })
 }
 
+
+const getTotalDebt = (event) => {
+  const sheets = google.sheets({version: 'v4', auth: event.auth})
+
+  return new Promise((resolve, reject) => {
+    sheets.spreadsheets.values.get({
+      spreadsheetId: process.env.GOOGLE_SHEET_ID,
+      range: 'Sheet1!G5:H6'
+    }, (err, {data}) => {
+      if (err) reject(err)
+
+      let balanceDaniel = parseFloat(data.values[0][1])
+      let balanceAlex = parseFloat(data.values[1][1])
+
+      if (balanceDaniel < 0) {
+        event.response += '. '+data.values[1][0]+' '+data.values[1][1]
+      } else {
+        event.response += '. '+data.values[0][0]+' '+data.values[0][1]
+      }
+      resolve(Object.assign(event, {balance: data.values}))
+    })
+  })
+
+}
+
 const sendMessage = (event) => {
+
+  console.log('Inside send message')
   var chatId = event.body.message.chat.id
 
   const url = `https://api.telegram.org/bot${process.env.TELEGRAM_TOKEN}/sendMessage`
@@ -114,28 +141,10 @@ const successResponse = callback => callback(null, {
 })
 
 const errorResponse = (error, callback) => {
+  console.log('Error', error)
   return callback(null, {
     statusCode: 500
   })
-}
-
-const getSheetId = (timestamp) => {
-  const date = new Date(timestamp*1000)
-
-  return date.getMonth()+date.getFullYear()
-}
-
-const getSheetName = (timestamp) => {
-  return "'" + getMonthName(timestamp) + "'"
-}
-
-const getMonthName = (timestamp) => {
-  const date = new Date(timestamp*1000)
-
-  const locale = "en-us"
-
-  return date.toLocaleString(locale, { month: "long" })
-        + ' ' + date.toLocaleString(locale, {year: "2-digit"})
 }
 
 const formatDate = (timestamp) => {
@@ -150,7 +159,7 @@ module.exports.hello = (event, context, callback) =>
     .then(buildResponse)
     .then(getGoogleToken)
     .then(storeExpense)
-  //.then(getTotalDebt)
+    .then(getTotalDebt)
     .then(sendMessage)
     .then(() => successResponse(callback))
     .catch(error => errorResponse(error, callback))
