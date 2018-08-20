@@ -25,7 +25,7 @@ const buildResponse = (event) => {
   var text = event.body.message.text
 
   // capture 2 groups: (amount) (description)
-  var regex = /(\d+(?:\.\d+)?)\s((?:\w+)(?:\s\w+)*)/
+  var regex = /(\d+(?:\.\d+)?)\s(.*)/
 
   var result = text.match(regex)
 
@@ -104,9 +104,9 @@ const getTotalDebt = (event) => {
       let balanceAlex = parseFloat(data.values[1][1])
 
       if (balanceDaniel < 0) {
-        event.response += '. '+data.values[1][0]+' '+data.values[1][1]
+        event.response += '. '+data.values[1][0]+' €'+data.values[1][1]
       } else {
-        event.response += '. '+data.values[0][0]+' '+data.values[0][1]
+        event.response += '. '+data.values[0][0]+' €'+data.values[0][1]
       }
       resolve(Object.assign(event, {balance: data.values}))
     })
